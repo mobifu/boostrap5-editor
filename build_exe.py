@@ -138,14 +138,14 @@ def main():
         if os.path.exists(fname):
             shutil.copy(fname, os.path.join(build_staging, fname))
 
-    log_step("3. PyInstaller-Build für Windows Executable (.exe)")
+    log_step("3. Executable-Build (PyInstaller oder Nuitka)")
     dist_dir = os.path.abspath("dist")
 
     ico_staging = os.path.join(build_staging, "favicon.ico")
     png_staging = os.path.join(build_staging, "android-chrome-512x512.png")
     help_staging = os.path.join(build_staging, "help.html")
 
-    # Erzeuge vollwertiges Multi-Resolution Windows ICO für PyInstaller
+    # Erzeuge vollwertiges Multi-Resolution Windows ICO
     icon_to_use = os.path.join(build_staging, "favicon.ico")
     if os.path.exists(png_staging):
         try:
@@ -168,29 +168,65 @@ def main():
         except Exception as e:
             print(f"[HINWEIS] Konnte Multi-Res ICO nicht erstellen: {e}")
 
-    pyinstaller_cmd = [
-        sys.executable,
-        "-m",
-        "PyInstaller",
-        "--noconfirm",
-        "--onedir",
-        "--windowed",
-        "--name",
-        "BootstrapEditor",
-        "--clean",
-        "--icon",
-        icon_to_use,
-    ]
+    # Build-Tool Ausführen (PyInstaller vs. Nuitka)
+    use_nuitka = "--nuitka" in sys.argv
 
-    if os.path.exists(ico_staging):
-        pyinstaller_cmd.extend(["--add-data", f"{ico_staging};."])
-    if os.path.exists(png_staging):
-        pyinstaller_cmd.extend(["--add-data", f"{png_staging};."])
-    if os.path.exists(help_staging):
-        pyinstaller_cmd.extend(["--add-data", f"{help_staging};."])
+    if use_nuitka:
+        print("> Verwende Nuitka für den Build...")
+        nuitka_cmd = [
+            sys.executable,
+            "-m",
+            "nuitka",
+            "--standalone",
+            "--windows-disable-console",
+            "--output-dir=" + dist_dir,
+            "--output-filename=BootstrapEditor.exe",
+            "--windows-icon-from-ico=" + icon_to_use,
+            # Nuitka Inclusions
+            "--include-package=customtkinter",
+            "--include-package=cryptography",
+            "--include-package=reportlab",
+            f"--include-data-files={ico_staging}=./favicon.ico",
+            f"--include-data-files={png_staging}=./android-chrome-512x512.png",
+            f"--include-data-files={help_staging}=./help.html",
+            "--assume-yes-for-downloads",
+            os.path.join(build_staging, "app.py"),
+        ]
+        run_cmd(nuitka_cmd)
+        target_dist_folder = os.path.join(dist_dir, "app.dist")
+        if os.path.exists(target_dist_folder):
+            final_dist_folder = os.path.join(dist_dir, "BootstrapEditor")
+            if os.path.exists(final_dist_folder):
+                shutil.rmtree(final_dist_folder)
+            os.rename(target_dist_folder, final_dist_folder)
+    else:
+        print(
+            "> Verwende PyInstaller für den Build (Nuitka mit '--nuitka' aktivieren)..."
+        )
+        pyinstaller_cmd = [
+            sys.executable,
+            "-m",
+            "PyInstaller",
+            "--noconfirm",
+            "--onedir",
+            "--windowed",
+            "--name",
+            "BootstrapEditor",
+            "--clean",
+            "--icon",
+            icon_to_use,
+        ]
 
-    pyinstaller_cmd.append(os.path.join(build_staging, "app.py"))
-    run_cmd(pyinstaller_cmd)
+        if os.path.exists(ico_staging):
+            pyinstaller_cmd.extend(["--add-data", f"{ico_staging};."])
+        if os.path.exists(png_staging):
+            pyinstaller_cmd.extend(["--add-data", f"{png_staging};."])
+        if os.path.exists(help_staging):
+            pyinstaller_cmd.extend(["--add-data", f"{help_staging};."])
+
+        pyinstaller_cmd.append(os.path.join(build_staging, "app.py"))
+        run_cmd(pyinstaller_cmd)
+        target_dist_folder = os.path.join(dist_dir, "BootstrapEditor")
 
     log_step("4. ZIP-Variante der Release-Dateien erstellen")
     target_dist_folder = os.path.join(dist_dir, "BootstrapEditor")

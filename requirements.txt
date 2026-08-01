@@ -6,3 +6,4 @@ bandit
 pyinstaller
 pre-commit
 ruff
+nuitka
