@@ -221,18 +221,6 @@ def main():
             if os.path.exists(final_dist_folder):
                 shutil.rmtree(final_dist_folder)
             os.rename(target_dist_folder, final_dist_folder)
-
-            # _internal Ordnerstruktur für Nuitka aufbauen
-            internal_dir = os.path.join(final_dist_folder, "_internal")
-            os.makedirs(internal_dir, exist_ok=True)
-
-            for item in os.listdir(final_dist_folder):
-                if item in ("BootstrapEditor.exe", "_internal"):
-                    continue
-                src_path = os.path.join(final_dist_folder, item)
-                dst_path = os.path.join(internal_dir, item)
-                shutil.move(src_path, dst_path)
-
         target_dist_folder = final_dist_folder
     else:
         print(
