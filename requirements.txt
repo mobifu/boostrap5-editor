@@ -1,0 +1,8 @@
+customtkinter
+cryptography
+reportlab
+pytest
+bandit
+pyinstaller
+pre-commit
+ruff

@@ -1,0 +1,14 @@
+# Virtual Environment
+.venv/
+__pycache__/
+*.pyc
+
+# Build and Dist output
+build/
+dist/
+build_staging/
+*.spec
+
+# Test Cache
+.pytest_cache/
+.coverage
