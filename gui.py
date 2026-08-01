@@ -1,29 +1,30 @@
-import customtkinter as ctk
-import tkinter.messagebox as messagebox
-from tkinter import filedialog
+import json
 import os
 import sys
-import json
-import webbrowser
 import tkinter as tk
-import security
-from generator import HTMLGenerator, HTMLConverter
+import webbrowser
+from tkinter import filedialog, messagebox
+
+import customtkinter as ctk
 from PIL import Image, ImageTk
+
+import security
+from generator import HTMLConverter, HTMLGenerator
 from models import (
+    AccordionBlock,
+    AlertBlock,
+    BadgeBlock,
+    ButtonBlock,
+    CardBlock,
+    Column,
+    Element,
+    HtmlBlock,
+    ImageBlock,
+    ListGroupBlock,
     Page,
     Row,
-    Column,
-    TextBlock,
-    ImageBlock,
-    ButtonBlock,
-    AlertBlock,
-    HtmlBlock,
     TableBlock,
-    CardBlock,
-    BadgeBlock,
-    AccordionBlock,
-    ListGroupBlock,
-    Element,
+    TextBlock,
 )
 
 
@@ -1489,16 +1490,16 @@ class HelpDialog(ctk.CTkToplevel):
             return
 
         try:
-            from reportlab.lib.pagesizes import A4
             from reportlab.lib import colors
-            from reportlab.platypus import (
-                SimpleDocTemplate,
-                Paragraph,
-                Spacer,
-                HRFlowable,
-            )
-            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
             from reportlab.lib.units import cm
+            from reportlab.platypus import (
+                HRFlowable,
+                Paragraph,
+                SimpleDocTemplate,
+                Spacer,
+            )
 
             doc = SimpleDocTemplate(
                 filepath,

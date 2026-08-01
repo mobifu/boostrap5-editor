@@ -33,6 +33,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=['C:\\E\\python\\boostrap5-editor\\build_staging\\app_icon.ico'],
+    contents_directory='_internal',
 )
 coll = COLLECT(
     exe,

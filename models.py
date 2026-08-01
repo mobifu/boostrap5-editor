@@ -1,6 +1,6 @@
-import uuid
 import html
-from typing import List, Dict, Any
+import uuid
+from typing import Any
 
 
 class Element:
@@ -40,7 +40,7 @@ class Element:
             return html_code
         return f'<div class="{spacing_classes}">\n{html_code}\n</div>'
 
-    def base_to_dict(self) -> Dict[str, Any]:
+    def base_to_dict(self) -> dict[str, Any]:
         return {
             "margin_top": self.margin_top,
             "margin_bottom": self.margin_bottom,
@@ -51,11 +51,11 @@ class Element:
     def render(self, version: str = "5") -> str:
         raise NotImplementedError("Subklassen müssen render() implementieren.")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"id": self.id, "type": "Element", **self.base_to_dict()}
 
     @classmethod
-    def extract_spacing_kwargs(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    def extract_spacing_kwargs(cls, data: dict[str, Any]) -> dict[str, Any]:
         return {
             "element_id": data.get("id"),
             "margin_top": data.get("margin_top", "none"),
@@ -65,7 +65,7 @@ class Element:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Element":
+    def from_dict(cls, data: dict[str, Any]) -> "Element":
         # Factory Methode
         element_type = data.get("type")
         if element_type == "TextBlock":
@@ -109,7 +109,7 @@ class TextBlock(Element):
         escaped_text = html.escape(self.text)
         return f"<{self.tag}>{escaped_text}</{self.tag}>"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": "TextBlock",
@@ -119,7 +119,7 @@ class TextBlock(Element):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "TextBlock":
+    def from_dict(cls, data: dict[str, Any]) -> "TextBlock":
         return cls(
             text=data.get("text", ""),
             tag=data.get("tag", "p"),
@@ -149,7 +149,7 @@ class ImageBlock(Element):
         escaped_alt = html.escape(self.alt, quote=True)
         return f'<img src="{escaped_url}" alt="{escaped_alt}" class="{img_class}">'
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": "ImageBlock",
@@ -159,7 +159,7 @@ class ImageBlock(Element):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ImageBlock":
+    def from_dict(cls, data: dict[str, Any]) -> "ImageBlock":
         return cls(
             url=data.get("url", ""),
             alt=data.get("alt", "Bild"),
@@ -182,7 +182,7 @@ class ButtonBlock(Element):
         safe_style = _sanitize_css_class(self.style, "primary")
         return f'<a href="{escaped_url}" class="btn btn-{safe_style}" role="button">{escaped_text}</a>'
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": "ButtonBlock",
@@ -193,7 +193,7 @@ class ButtonBlock(Element):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ButtonBlock":
+    def from_dict(cls, data: dict[str, Any]) -> "ButtonBlock":
         return cls(
             text=data.get("text", "Button"),
             url=data.get("url", "#"),
@@ -217,7 +217,7 @@ class AlertBlock(Element):
             f'<div class="alert alert-{safe_style}" role="alert">{escaped_text}</div>'
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": "AlertBlock",
@@ -227,7 +227,7 @@ class AlertBlock(Element):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "AlertBlock":
+    def from_dict(cls, data: dict[str, Any]) -> "AlertBlock":
         return cls(
             text=data.get("text", ""),
             style=data.get("style", "info"),
@@ -245,7 +245,7 @@ class HtmlBlock(Element):
     def render(self, version: str = "5") -> str:
         return self.code
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": "HtmlBlock",
@@ -254,7 +254,7 @@ class HtmlBlock(Element):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "HtmlBlock":
+    def from_dict(cls, data: dict[str, Any]) -> "HtmlBlock":
         return cls(code=data.get("code", ""), **cls.extract_spacing_kwargs(data))
 
 
@@ -263,8 +263,8 @@ class TableBlock(Element):
 
     def __init__(
         self,
-        headers: List[str] = None,
-        rows: List[List[str]] = None,
+        headers: list[str] = None,
+        rows: list[list[str]] = None,
         striped: bool = True,
         bordered: bool = False,
         hover: bool = True,
@@ -306,7 +306,7 @@ class TableBlock(Element):
         tbody_html = "\n".join(tr_html_list)
         return f'<table class="{class_str}">\n<thead>\n<tr>{th_html}</tr>\n</thead>\n<tbody>\n{tbody_html}\n</tbody>\n</table>'
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": "TableBlock",
@@ -319,7 +319,7 @@ class TableBlock(Element):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "TableBlock":
+    def from_dict(cls, data: dict[str, Any]) -> "TableBlock":
         return cls(
             headers=data.get("headers"),
             rows=data.get("rows"),
@@ -373,7 +373,7 @@ class CardBlock(Element):
                 f"</div>"
             )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": "CardBlock",
@@ -384,7 +384,7 @@ class CardBlock(Element):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CardBlock":
+    def from_dict(cls, data: dict[str, Any]) -> "CardBlock":
         return cls(
             title=data.get("title", "Titel"),
             content=data.get("content", ""),
@@ -410,7 +410,7 @@ class BadgeBlock(Element):
             bg_style = "secondary" if self.style == "default" else self.style
             return f'<span class="badge bg-{bg_style}">{escaped_text}</span>'
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": "BadgeBlock",
@@ -420,7 +420,7 @@ class BadgeBlock(Element):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "BadgeBlock":
+    def from_dict(cls, data: dict[str, Any]) -> "BadgeBlock":
         return cls(
             text=data.get("text", "Badge"),
             style=data.get("style", "primary"),
@@ -431,7 +431,7 @@ class BadgeBlock(Element):
 class AccordionBlock(Element):
     """Repräsentiert ein Akkordeon / Collapse Element."""
 
-    def __init__(self, items: List[Dict[str, str]] = None, **kwargs):
+    def __init__(self, items: list[dict[str, str]] = None, **kwargs):
         super().__init__(**kwargs)
         self.items = (
             items
@@ -495,7 +495,7 @@ class AccordionBlock(Element):
                 + "\n</div>"
             )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": "AccordionBlock",
@@ -504,14 +504,14 @@ class AccordionBlock(Element):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "AccordionBlock":
+    def from_dict(cls, data: dict[str, Any]) -> "AccordionBlock":
         return cls(items=data.get("items"), **cls.extract_spacing_kwargs(data))
 
 
 class ListGroupBlock(Element):
     """Repräsentiert eine Bootstrap List Group."""
 
-    def __init__(self, items: List[str] = None, **kwargs):
+    def __init__(self, items: list[str] = None, **kwargs):
         super().__init__(**kwargs)
         self.items = (
             items if items is not None else ["Eintrag 1", "Eintrag 2", "Eintrag 3"]
@@ -526,7 +526,7 @@ class ListGroupBlock(Element):
         )
         return f'<ul class="list-group">\n{items_html}\n</ul>'
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": "ListGroupBlock",
@@ -535,7 +535,7 @@ class ListGroupBlock(Element):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ListGroupBlock":
+    def from_dict(cls, data: dict[str, Any]) -> "ListGroupBlock":
         return cls(items=data.get("items"), **cls.extract_spacing_kwargs(data))
 
 
@@ -545,7 +545,7 @@ class Column(Element):
     def __init__(self, span: int = 12, element_id: str = None):
         super().__init__(element_id)
         self.span = span
-        self.elements: List[Element] = []
+        self.elements: list[Element] = []
 
     def add_element(self, element: Element):
         self.elements.append(element)
@@ -581,7 +581,7 @@ class Column(Element):
         inner_html = "\n".join(rendered_elements)
         return f'<div class="col-md-{self.span}">\n{inner_html}\n</div>'
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": "Column",
@@ -590,7 +590,7 @@ class Column(Element):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Column":
+    def from_dict(cls, data: dict[str, Any]) -> "Column":
         col = cls(span=data.get("span", 12), element_id=data.get("id"))
         for e_data in data.get("elements", []):
             col.add_element(Element.from_dict(e_data))
@@ -602,7 +602,7 @@ class Row(Element):
 
     def __init__(self, element_id: str = None):
         super().__init__(element_id)
-        self.columns: List[Column] = []
+        self.columns: list[Column] = []
 
     def add_column(self, column: Column):
         self.columns.append(column)
@@ -615,7 +615,7 @@ class Row(Element):
         row_class = "row" if version == "3" else "row mb-3"
         return f'<div class="{row_class}">\n{cols_html}\n</div>'
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": "Row",
@@ -623,7 +623,7 @@ class Row(Element):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Row":
+    def from_dict(cls, data: dict[str, Any]) -> "Row":
         row = cls(element_id=data.get("id"))
         for c_data in data.get("columns", []):
             row.add_column(Element.from_dict(c_data))  # Wir wissen, dass es Column sind
@@ -636,7 +636,7 @@ class Page(Element):
     def __init__(self, title: str = "Neues Projekt", element_id: str = None):
         super().__init__(element_id)
         self.title = title
-        self.rows: List[Row] = []
+        self.rows: list[Row] = []
 
     def add_row(self, row: Row):
         self.rows.append(row)
@@ -663,7 +663,7 @@ class Page(Element):
         container_class = "container" if version == "3" else "container mt-5"
         return f'<div class="{container_class}">\n{rows_html}\n</div>'
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": "Page",
@@ -672,7 +672,7 @@ class Page(Element):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Page":
+    def from_dict(cls, data: dict[str, Any]) -> "Page":
         page = cls(title=data.get("title", "Neues Projekt"), element_id=data.get("id"))
         for r_data in data.get("rows", []):
             page.add_row(Element.from_dict(r_data))

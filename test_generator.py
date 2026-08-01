@@ -1,21 +1,22 @@
 import unittest
+
+import security
+from generator import HTMLGenerator
 from models import (
+    AccordionBlock,
+    AlertBlock,
+    BadgeBlock,
+    ButtonBlock,
+    CardBlock,
+    Column,
+    HtmlBlock,
+    ImageBlock,
+    ListGroupBlock,
     Page,
     Row,
-    Column,
-    TextBlock,
-    ImageBlock,
-    ButtonBlock,
-    AlertBlock,
-    HtmlBlock,
     TableBlock,
-    CardBlock,
-    BadgeBlock,
-    AccordionBlock,
-    ListGroupBlock,
+    TextBlock,
 )
-from generator import HTMLGenerator
-import security
 
 
 class TestBootstrapGenerator(unittest.TestCase):

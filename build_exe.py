@@ -1,9 +1,10 @@
 import os
-import sys
+import re
 import shutil
 import subprocess
+import sys
 import zipfile
-import re
+
 from PIL import Image
 
 
@@ -95,26 +96,46 @@ def main():
     log_step("0. Versionsprüfung & Aktualisierung")
     version = bump_version_prompt()
 
-    log_step("1. Sicherheitsprüfung (Bandit & Pytest Audit)")
-    # Tests ausführen
+    log_step("1. Sicherheits- & Qualitätsprüfung (Ruff, Pytest & Bandit)")
+    # 1. Ruff Code-Analyse
+    print("> Starte Ruff Code-Analyse...")
+    ruff_res = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ruff",
+            "check",
+            "--select=E,F,W",
+            "--ignore=E501,W293",
+            ".",
+        ],
+        shell=False,
+    )
+    if ruff_res.returncode != 0:
+        print(
+            "[FEHLER] Ruff hat Syntax- oder schwere Code-Fehler festgestellt! Build wird abgebrochen."
+        )
+        sys.exit(1)
+
+    # 2. Pytest Unit-Tests
     print("> Starte Pytest Unit-Tests...")
     test_res = subprocess.run(
         [sys.executable, "-m", "pytest", "test_generator.py"], shell=False
     )
     if test_res.returncode != 0:
-        print(
-            "[HINWEIS/WARNUNG] Pytest fehlgeschlagen oder nicht im VirtualEnv installiert."
-        )
+        print("[FEHLER] Unit-Tests fehlgeschlagen! Build wird abgebrochen.")
+        sys.exit(1)
 
-    # Bandit Security Audit
+    # 3. Bandit Security Audit
     print("> Starte Bandit Sicherheitsanalyse...")
     audit_res = subprocess.run(
-        [sys.executable, "-m", "bandit", "-r", ".", "-x", "./.venv"], shell=False
+        [sys.executable, "-m", "bandit", "-r", ".", "-x", "./.venv", "-ll"], shell=False
     )
     if audit_res.returncode != 0:
         print(
-            "[HINWEIS] Bandit hat potenzielle Warnungen gemeldet oder ist nicht installiert."
+            "[FEHLER] Bandit hat kritische Sicherheitslücken gemeldet! Build wird abgebrochen."
         )
+        sys.exit(1)
 
     log_step("2. Code-Verschleierung & Vorbereitung")
     build_staging = os.path.abspath("build_staging")
@@ -179,6 +200,7 @@ def main():
             "nuitka",
             "--standalone",
             "--windows-disable-console",
+            "--enable-plugin=tk-inter",
             "--output-dir=" + dist_dir,
             "--output-filename=BootstrapEditor.exe",
             "--windows-icon-from-ico=" + icon_to_use,
@@ -199,9 +221,22 @@ def main():
             if os.path.exists(final_dist_folder):
                 shutil.rmtree(final_dist_folder)
             os.rename(target_dist_folder, final_dist_folder)
+
+            # _internal Ordnerstruktur für Nuitka aufbauen
+            internal_dir = os.path.join(final_dist_folder, "_internal")
+            os.makedirs(internal_dir, exist_ok=True)
+
+            for item in os.listdir(final_dist_folder):
+                if item in ("BootstrapEditor.exe", "_internal"):
+                    continue
+                src_path = os.path.join(final_dist_folder, item)
+                dst_path = os.path.join(internal_dir, item)
+                shutil.move(src_path, dst_path)
+
+        target_dist_folder = final_dist_folder
     else:
         print(
-            "> Verwende PyInstaller für den Build (Nuitka mit '--nuitka' aktivieren)..."
+            "> Verwende PyInstaller für den Build (schneller Start & aufgeräumte Ordnerstruktur)..."
         )
         pyinstaller_cmd = [
             sys.executable,
@@ -215,6 +250,8 @@ def main():
             "--clean",
             "--icon",
             icon_to_use,
+            "--contents-directory",
+            "_internal",
         ]
 
         if os.path.exists(ico_staging):
@@ -229,7 +266,6 @@ def main():
         target_dist_folder = os.path.join(dist_dir, "BootstrapEditor")
 
     log_step("4. ZIP-Variante der Release-Dateien erstellen")
-    target_dist_folder = os.path.join(dist_dir, "BootstrapEditor")
     zip_filename = os.path.join(dist_dir, f"BootstrapEditor_v{version}.zip")
     if os.path.exists(target_dist_folder):
         create_zip_archive(target_dist_folder, zip_filename)
