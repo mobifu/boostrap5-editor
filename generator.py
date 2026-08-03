@@ -213,24 +213,24 @@ class HTMLConverter:
         return headers, rows
 
     @staticmethod
-    def format_table_line(items: list[str], delimiter: str = "; ") -> str:
-        """Konvertiert eine Liste von Zellwerten in einen lesbaren String mit Semicolon-Trennzeichen."""
+    def format_table_line(items: list[str], delimiter: str = " | ") -> str:
+        """Konvertiert eine Liste von Zellwerten in einen lesbaren String mit Pipe-Trennzeichen."""
         return delimiter.join(items)
 
     @staticmethod
     def parse_table_line(line: str) -> list[str]:
         """
         Parst eine Tabellenzeile.
-        Verwendet bevorzugt ';', '|' oder Tab, falls vorhanden.
+        Verwendet bevorzugt '|', ';', oder Tab, falls vorhanden.
         Fällt sonst auf CSV-Parsing (Komma mit Quoting) zurück.
         """
         raw = line.strip()
         if not raw:
             return []
-        if ";" in raw:
-            return [cell.strip() for cell in raw.split(";")]
         if "|" in raw:
             return [cell.strip() for cell in raw.split("|")]
+        if ";" in raw:
+            return [cell.strip() for cell in raw.split(";")]
         if "\t" in raw:
             return [cell.strip() for cell in raw.split("\t")]
         return HTMLConverter.parse_csv_line(raw)

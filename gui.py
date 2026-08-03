@@ -269,17 +269,17 @@ class TableDialog(ctk.CTkToplevel):
         headers_str = (
             HTMLConverter.format_table_line(default_headers)
             if default_headers
-            else "Spalte 1; Spalte 2; Spalte 3"
+            else "Spalte 1 | Spalte 2 | Spalte 3"
         )
         if not default_rows_text:
             default_rows_text = (
-                "Zeile 1 A; Zeile 1 B; Zeile 1 C\nZeile 2 A; Zeile 2 B; Zeile 2 C"
+                "Zeile 1 A | Zeile 1 B | Zeile 1 C\nZeile 2 A | Zeile 2 B | Zeile 2 C"
             )
 
         top_frame = ctk.CTkFrame(self, fg_color="transparent")
         top_frame.pack(fill="x", padx=20, pady=(10, 0))
 
-        ctk.CTkLabel(top_frame, text="Spaltenköpfe (Getrennt mit ';'):").pack(
+        ctk.CTkLabel(top_frame, text="Spaltenköpfe (Getrennt mit '|'):").pack(
             side="left"
         )
         ctk.CTkButton(
@@ -297,7 +297,7 @@ class TableDialog(ctk.CTkToplevel):
         self.headers_entry.pack(pady=5)
 
         ctk.CTkLabel(
-            self, text="Zeilen-Daten (Pro Zeile 1 Datenzeile, Getrennt mit ';'):"
+            self, text="Zeilen-Daten (Pro Zeile 1 Datenzeile, Getrennt mit '|'):"
         ).pack(pady=(10, 2))
         self.rows_textbox = ctk.CTkTextbox(
             self, width=500, height=220, font=("Consolas", 11)

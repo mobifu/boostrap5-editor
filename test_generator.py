@@ -209,19 +209,19 @@ class TestBootstrapGenerator(unittest.TestCase):
         rows = [["Apfel", "1,50 €"], ["Müller, Hans", "2,99 €"]]
 
         formatted_headers = HTMLConverter.format_table_line(headers)
-        self.assertEqual(formatted_headers, "Produkt; Preis (EUR, inkl. MwSt)")
+        self.assertEqual(formatted_headers, "Produkt | Preis (EUR, inkl. MwSt)")
 
         parsed_headers = HTMLConverter.parse_table_line(formatted_headers)
         self.assertEqual(parsed_headers, headers)
 
         formatted_row1 = HTMLConverter.format_table_line(rows[0])
-        self.assertEqual(formatted_row1, "Apfel; 1,50 €")
+        self.assertEqual(formatted_row1, "Apfel | 1,50 €")
 
         parsed_row1 = HTMLConverter.parse_table_line(formatted_row1)
         self.assertEqual(parsed_row1, ["Apfel", "1,50 €"])
 
         formatted_row2 = HTMLConverter.format_table_line(rows[1])
-        self.assertEqual(formatted_row2, "Müller, Hans; 2,99 €")
+        self.assertEqual(formatted_row2, "Müller, Hans | 2,99 €")
 
         parsed_row2 = HTMLConverter.parse_table_line(formatted_row2)
         self.assertEqual(parsed_row2, ["Müller, Hans", "2,99 €"])
