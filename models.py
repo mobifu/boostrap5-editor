@@ -86,6 +86,10 @@ class Element:
             return BadgeBlock.from_dict(data)
         elif element_type == "AccordionBlock":
             return AccordionBlock.from_dict(data)
+        elif element_type == "FormInputBlock":
+            return FormInputBlock.from_dict(data)
+        elif element_type == "NavbarBlock":
+            return NavbarBlock.from_dict(data)
         elif element_type == "ListGroupBlock":
             return ListGroupBlock.from_dict(data)
         elif element_type == "Column":
@@ -539,11 +543,184 @@ class ListGroupBlock(Element):
         return cls(items=data.get("items"), **cls.extract_spacing_kwargs(data))
 
 
+class FormInputBlock(Element):
+    """Repräsentiert ein Bootstrap 5 Formulardefinitions-Feld (Input, Select, Textarea)."""
+
+    def __init__(
+        self,
+        label: str = "Eingabefeld",
+        input_type: str = "text",
+        placeholder: str = "",
+        help_text: str = "",
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.label = label
+        self.input_type = input_type  # text, email, password, number, textarea
+        self.placeholder = placeholder
+        self.help_text = help_text
+
+    def render(self, version: str = "5") -> str:
+        field_id = f"field-{self.id}"
+        esc_label = html.escape(self.label)
+        esc_placeholder = html.escape(self.placeholder, quote=True)
+        esc_help = html.escape(self.help_text)
+
+        form_group_class = "form-group" if version == "3" else "mb-3"
+        control_class = "form-control"
+
+        label_class = "control-label" if version == "3" else "form-label"
+        label_html = (
+            f'<label for="{field_id}" class="{label_class}">{esc_label}</label>'
+        )
+
+        if self.input_type == "textarea":
+            input_html = f'<textarea class="{control_class}" id="{field_id}" rows="3" placeholder="{esc_placeholder}"></textarea>'
+        else:
+            safe_type = _sanitize_css_class(self.input_type, "text")
+            input_html = f'<input type="{safe_type}" class="{control_class}" id="{field_id}" placeholder="{esc_placeholder}">'
+
+        help_class = "help-block" if version == "3" else "form-text"
+        help_html = (
+            f'<span class="{help_class}" id="{field_id}-help">{esc_help}</span>'
+            if (esc_help and version == "3")
+            else (
+                f'<div id="{field_id}-help" class="form-text">{esc_help}</div>'
+                if esc_help
+                else ""
+            )
+        )
+
+        return f'<div class="{form_group_class}">\n  {label_html}\n  {input_html}\n  {help_html}\n</div>'
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "type": "FormInputBlock",
+            "label": self.label,
+            "input_type": self.input_type,
+            "placeholder": self.placeholder,
+            "help_text": self.help_text,
+            **self.base_to_dict(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "FormInputBlock":
+        return cls(
+            label=data.get("label", "Eingabefeld"),
+            input_type=data.get("input_type", "text"),
+            placeholder=data.get("placeholder", ""),
+            help_text=data.get("help_text", ""),
+            **cls.extract_spacing_kwargs(data),
+        )
+
+
+class NavbarBlock(Element):
+    """Repräsentiert eine Bootstrap Navigation Bar."""
+
+    def __init__(
+        self,
+        brand: str = "Meine Website",
+        links: list[dict[str, str]] = None,
+        bg_style: str = "dark",
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.brand = brand
+        self.links = (
+            links
+            if links is not None
+            else [
+                {"text": "Start", "url": "#"},
+                {"text": "Über uns", "url": "#"},
+                {"text": "Kontakt", "url": "#"},
+            ]
+        )
+        self.bg_style = bg_style  # dark, primary, light
+
+    def render(self, version: str = "5") -> str:
+        esc_brand = html.escape(self.brand)
+        safe_bg = _sanitize_css_class(self.bg_style, "dark")
+
+        links_html_list = []
+        for link in self.links:
+            text = html.escape(link.get("text", "Link"))
+            url = html.escape(link.get("url", "#"), quote=True)
+            if version == "3":
+                links_html_list.append(f'        <li><a href="{url}">{text}</a></li>')
+            else:
+                links_html_list.append(
+                    f'      <li class="nav-item"><a class="nav-link" href="{url}">{text}</a></li>'
+                )
+        links_html = "\n".join(links_html_list)
+
+        if version == "3":
+            nav_class = (
+                "navbar-inverse" if safe_bg in ["dark", "primary"] else "navbar-default"
+            )
+            return (
+                f'<nav class="navbar {nav_class}">\n'
+                f'  <div class="container-fluid">\n'
+                f'    <div class="navbar-header">\n'
+                f'      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#nav-{self.id}">\n'
+                f'        <span class="sr-only">Toggle navigation</span>\n'
+                f'        <span class="icon-bar"></span>\n'
+                f'        <span class="icon-bar"></span>\n'
+                f'        <span class="icon-bar"></span>\n'
+                f"      </button>\n"
+                f'      <a class="navbar-brand" href="#">{esc_brand}</a>\n'
+                f"    </div>\n"
+                f'    <div class="collapse navbar-collapse" id="nav-{self.id}">\n'
+                f'      <ul class="nav navbar-nav">\n'
+                f"{links_html}\n"
+                f"      </ul>\n"
+                f"    </div>\n"
+                f"  </div>\n"
+                f"</nav>"
+            )
+        else:
+            dark_class = " navbar-dark" if safe_bg in ["dark", "primary"] else ""
+            return (
+                f'<nav class="navbar navbar-expand-lg bg-{safe_bg}{dark_class}">\n'
+                f'  <div class="container-fluid">\n'
+                f'    <a class="navbar-brand" href="#">{esc_brand}</a>\n'
+                f'    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav-{self.id}">\n'
+                f'      <span class="navbar-toggler-icon"></span>\n'
+                f"    </button>\n"
+                f'    <div class="collapse navbar-collapse" id="nav-{self.id}">\n'
+                f'      <ul class="navbar-nav me-auto mb-2 mb-lg-0">\n'
+                f"{links_html}\n"
+                f"      </ul>\n"
+                f"    </div>\n"
+                f"  </div>\n"
+                f"</nav>"
+            )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "type": "NavbarBlock",
+            "brand": self.brand,
+            "links": self.links,
+            "bg_style": self.bg_style,
+            **self.base_to_dict(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "NavbarBlock":
+        return cls(
+            brand=data.get("brand", "Meine Website"),
+            links=data.get("links"),
+            bg_style=data.get("bg_style", "dark"),
+            **cls.extract_spacing_kwargs(data),
+        )
+
+
 class Column(Element):
     """Repräsentiert eine Bootstrap Spalte (z.B. col-md-6)."""
 
-    def __init__(self, span: int = 12, element_id: str = None):
-        super().__init__(element_id)
+    def __init__(self, span: int = 12, element_id: str = None, **kwargs):
+        super().__init__(element_id=element_id, **kwargs)
         self.span = span
         self.elements: list[Element] = []
 
@@ -579,7 +756,8 @@ class Column(Element):
             for e in self.elements
         ]
         inner_html = "\n".join(rendered_elements)
-        return f'<div class="col-md-{self.span}">\n{inner_html}\n</div>'
+        html_code = f'<div class="col-md-{self.span}">\n{inner_html}\n</div>'
+        return self.apply_spacing_to_html(html_code, version=version)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -587,11 +765,18 @@ class Column(Element):
             "type": "Column",
             "span": self.span,
             "elements": [e.to_dict() for e in self.elements],
+            **self.base_to_dict(),
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Column":
-        col = cls(span=data.get("span", 12), element_id=data.get("id"))
+        kwargs = cls.extract_spacing_kwargs(data)
+        kwargs.pop("element_id", None)
+        col = cls(
+            span=data.get("span", 12),
+            element_id=data.get("id"),
+            **kwargs,
+        )
         for e_data in data.get("elements", []):
             col.add_element(Element.from_dict(e_data))
         return col
@@ -600,8 +785,8 @@ class Column(Element):
 class Row(Element):
     """Repräsentiert eine Bootstrap Zeile (row)."""
 
-    def __init__(self, element_id: str = None):
-        super().__init__(element_id)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.columns: list[Column] = []
 
     def add_column(self, column: Column):
@@ -613,20 +798,22 @@ class Row(Element):
     def render(self, version: str = "5") -> str:
         cols_html = "\n".join([c.render(version=version) for c in self.columns])
         row_class = "row" if version == "3" else "row mb-3"
-        return f'<div class="{row_class}">\n{cols_html}\n</div>'
+        html_code = f'<div class="{row_class}">\n{cols_html}\n</div>'
+        return self.apply_spacing_to_html(html_code, version=version)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": "Row",
             "columns": [c.to_dict() for c in self.columns],
+            **self.base_to_dict(),
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Row":
-        row = cls(element_id=data.get("id"))
+        row = cls(**cls.extract_spacing_kwargs(data))
         for c_data in data.get("columns", []):
-            row.add_column(Element.from_dict(c_data))  # Wir wissen, dass es Column sind
+            row.add_column(Element.from_dict(c_data))
         return row
 
 

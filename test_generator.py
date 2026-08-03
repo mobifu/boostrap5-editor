@@ -202,6 +202,47 @@ class TestBootstrapGenerator(unittest.TestCase):
         rendered_btn = btn.render()
         self.assertIn('class="btn btn-primarybackgroundred"', rendered_btn)
 
+    def test_table_semicolon_and_comma_parsing(self):
+        from generator import HTMLConverter
+
+        headers = ["Produkt", "Preis (EUR, inkl. MwSt)"]
+        rows = [["Apfel", "1,50 €"], ["Müller, Hans", "2,99 €"]]
+
+        formatted_headers = HTMLConverter.format_table_line(headers)
+        self.assertEqual(formatted_headers, "Produkt; Preis (EUR, inkl. MwSt)")
+
+        parsed_headers = HTMLConverter.parse_table_line(formatted_headers)
+        self.assertEqual(parsed_headers, headers)
+
+        formatted_row1 = HTMLConverter.format_table_line(rows[0])
+        self.assertEqual(formatted_row1, "Apfel; 1,50 €")
+
+        parsed_row1 = HTMLConverter.parse_table_line(formatted_row1)
+        self.assertEqual(parsed_row1, ["Apfel", "1,50 €"])
+
+        formatted_row2 = HTMLConverter.format_table_line(rows[1])
+        self.assertEqual(formatted_row2, "Müller, Hans; 2,99 €")
+
+        parsed_row2 = HTMLConverter.parse_table_line(formatted_row2)
+        self.assertEqual(parsed_row2, ["Müller, Hans", "2,99 €"])
+
+        # HTML Import check with German numbers
+        raw_table_html = """
+        <table>
+            <tr><th>Produkt</th><th>Preis</th></tr>
+            <tr><td>Apfel, rot</td><td>1,50 €</td></tr>
+        </table>
+        """
+        html_headers, html_rows = HTMLConverter.parse_html_table(raw_table_html)
+        self.assertEqual(html_rows[0], ["Apfel, rot", "1,50 €"])
+
+        # Test pipe separator parsing
+        pipe_line = "Apfel | 1,50 € | Auf Lager"
+        self.assertEqual(
+            HTMLConverter.parse_table_line(pipe_line),
+            ["Apfel", "1,50 €", "Auf Lager"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

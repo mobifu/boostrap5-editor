@@ -3,7 +3,7 @@ import json
 import os
 
 from cryptography.exceptions import InvalidKey
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
@@ -56,9 +56,9 @@ def decrypt_project(encrypted_content: bytes, password: str) -> dict:
     try:
         decrypted_data = fernet.decrypt(actual_encrypted_data)
         return json.loads(decrypted_data.decode("utf-8"))
-    except InvalidKey:
+    except (InvalidKey, InvalidToken):
         raise ValueError("Falsches Passwort oder beschädigte Datei.")
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, UnicodeDecodeError):
         raise ValueError("Entschlüsselte Daten sind kein gültiges JSON-Format.")
     except Exception:
         raise ValueError(

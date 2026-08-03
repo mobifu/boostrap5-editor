@@ -18,9 +18,11 @@ from models import (
     CardBlock,
     Column,
     Element,
+    FormInputBlock,
     HtmlBlock,
     ImageBlock,
     ListGroupBlock,
+    NavbarBlock,
     Page,
     Row,
     TableBlock,
@@ -265,19 +267,21 @@ class TableDialog(ctk.CTkToplevel):
         self.result_rows = None
 
         headers_str = (
-            ", ".join(default_headers)
+            HTMLConverter.format_table_line(default_headers)
             if default_headers
-            else "Spalte 1, Spalte 2, Spalte 3"
+            else "Spalte 1; Spalte 2; Spalte 3"
         )
         if not default_rows_text:
             default_rows_text = (
-                "Zeile 1 A, Zeile 1 B, Zeile 1 C\nZeile 2 A, Zeile 2 B, Zeile 2 C"
+                "Zeile 1 A; Zeile 1 B; Zeile 1 C\nZeile 2 A; Zeile 2 B; Zeile 2 C"
             )
 
         top_frame = ctk.CTkFrame(self, fg_color="transparent")
         top_frame.pack(fill="x", padx=20, pady=(10, 0))
 
-        ctk.CTkLabel(top_frame, text="Spaltenköpfe (Kommagetrennt):").pack(side="left")
+        ctk.CTkLabel(top_frame, text="Spaltenköpfe (Getrennt mit ';'):").pack(
+            side="left"
+        )
         ctk.CTkButton(
             top_frame,
             text="📋 HTML-Tabelle importieren",
@@ -293,7 +297,7 @@ class TableDialog(ctk.CTkToplevel):
         self.headers_entry.pack(pady=5)
 
         ctk.CTkLabel(
-            self, text="Zeilen-Daten (Pro Zeile 1 Datenzeile, Kommagetrennt):"
+            self, text="Zeilen-Daten (Pro Zeile 1 Datenzeile, Getrennt mit ';'):"
         ).pack(pady=(10, 2))
         self.rows_textbox = ctk.CTkTextbox(
             self, width=500, height=220, font=("Consolas", 11)
@@ -349,11 +353,13 @@ class TableDialog(ctk.CTkToplevel):
 
             if headers:
                 self.headers_entry.delete(0, "end")
-                self.headers_entry.insert(0, ", ".join(headers))
+                self.headers_entry.insert(0, HTMLConverter.format_table_line(headers))
 
             if rows:
                 self.rows_textbox.delete("1.0", "end")
-                formatted_rows = "\n".join([", ".join(r) for r in rows])
+                formatted_rows = "\n".join(
+                    [HTMLConverter.format_table_line(r) for r in rows]
+                )
                 self.rows_textbox.insert("1.0", formatted_rows)
 
             messagebox.showinfo(
@@ -384,13 +390,15 @@ class TableDialog(ctk.CTkToplevel):
 
     def save(self):
         raw_h = self.headers_entry.get()
-        self.result_headers = [h.strip() for h in raw_h.split(",") if h.strip()]
+        self.result_headers = HTMLConverter.parse_table_line(raw_h)
 
         raw_rows = self.rows_textbox.get("1.0", "end-1c").strip().split("\n")
         self.result_rows = []
         for line in raw_rows:
             if line.strip():
-                self.result_rows.append([cell.strip() for cell in line.split(",")])
+                cells = HTMLConverter.parse_table_line(line)
+                if cells:
+                    self.result_rows.append(cells)
         self.destroy()
 
     def cancel(self):
@@ -595,17 +603,11 @@ class AccordionDialog(ctk.CTkToplevel):
 
         ctk.CTkLabel(
             self,
-            text="Akkordeon Elemente (Format: Titel | Inhalt):",
+            text="Akkordeon Abschnitte (Format: Titel | Inhalt - Ein Eintrag pro Zeile):",
             font=ctk.CTkFont(weight="bold"),
         ).pack(pady=(15, 5))
-        ctk.CTkLabel(
-            self,
-            text="Pro Zeile ein Element. Trenne Titel und Inhalt mit einem Pipe-Zeichen '|'",
-        ).pack(pady=(0, 5))
 
-        self.textbox = ctk.CTkTextbox(
-            self, width=500, height=280, font=("Consolas", 11)
-        )
+        self.textbox = ctk.CTkTextbox(self, width=500, height=300)
         self.textbox.insert("1.0", default_text)
         self.textbox.pack(pady=5)
 
@@ -627,22 +629,162 @@ class AccordionDialog(ctk.CTkToplevel):
         self.wait_window(self)
 
     def save(self):
-        raw_lines = self.textbox.get("1.0", "end-1c").strip().split("\n")
-        self.result_items = []
-        for line in raw_lines:
-            if line.strip():
-                if "|" in line:
-                    parts = line.split("|", 1)
-                    title = parts[0].strip()
-                    content = parts[1].strip()
-                else:
-                    title = line.strip()
-                    content = ""
-                self.result_items.append({"title": title, "content": content})
+        raw = self.textbox.get("1.0", "end-1c").strip().split("\n")
+        items = []
+        for line in raw:
+            if "|" in line:
+                parts = line.split("|", 1)
+                items.append({"title": parts[0].strip(), "content": parts[1].strip()})
+            elif line.strip():
+                items.append({"title": line.strip(), "content": ""})
+        self.result_items = items
         self.destroy()
 
     def cancel(self):
         self.result_items = None
+        self.destroy()
+
+
+class FormInputDialog(ctk.CTkToplevel):
+    def __init__(
+        self,
+        master,
+        title="Formularfeld hinzufügen",
+        default_label="Eingabefeld",
+        default_type="text",
+        default_placeholder="",
+        default_help="",
+    ):
+        super().__init__(master)
+        self.title(title)
+        self.geometry("420x360")
+        self.result_label = None
+        self.result_type = None
+        self.result_placeholder = None
+        self.result_help = None
+
+        ctk.CTkLabel(self, text="Beschriftung (Label):").pack(pady=(15, 2))
+        self.label_entry = ctk.CTkEntry(self, width=340)
+        self.label_entry.insert(0, default_label)
+        self.label_entry.pack(pady=3)
+
+        ctk.CTkLabel(self, text="Feld-Typ:").pack(pady=(5, 2))
+        self.type_var = ctk.StringVar(value=default_type)
+        types = ["text", "email", "password", "number", "textarea"]
+        self.type_menu = ctk.CTkOptionMenu(
+            self, values=types, variable=self.type_var, width=200
+        )
+        self.type_menu.pack(pady=3)
+
+        ctk.CTkLabel(self, text="Platzhalter (Placeholder):").pack(pady=(5, 2))
+        self.ph_entry = ctk.CTkEntry(self, width=340)
+        self.ph_entry.insert(0, default_placeholder)
+        self.ph_entry.pack(pady=3)
+
+        ctk.CTkLabel(self, text="Hilfetext:").pack(pady=(5, 2))
+        self.help_entry = ctk.CTkEntry(self, width=340)
+        self.help_entry.insert(0, default_help)
+        self.help_entry.pack(pady=3)
+
+        btn_frame = ctk.CTkFrame(self, fg_color="transparent")
+        btn_frame.pack(pady=15)
+        ctk.CTkButton(btn_frame, text="Speichern", command=self.save).pack(
+            side="left", padx=10
+        )
+        ctk.CTkButton(
+            btn_frame,
+            text="Abbrechen",
+            command=self.cancel,
+            fg_color="red",
+            hover_color="darkred",
+        ).pack(side="left", padx=10)
+
+        self.transient(master)
+        self.grab_set()
+        self.wait_window(self)
+
+    def save(self):
+        self.result_label = self.label_entry.get().strip()
+        self.result_type = self.type_var.get()
+        self.result_placeholder = self.ph_entry.get().strip()
+        self.result_help = self.help_entry.get().strip()
+        self.destroy()
+
+    def cancel(self):
+        self.destroy()
+
+
+class NavbarDialog(ctk.CTkToplevel):
+    def __init__(
+        self,
+        master,
+        title="Navigationsleiste hinzufügen",
+        default_brand="Meine Website",
+        default_bg="dark",
+        default_links_text="Start | #\nÜber uns | #\nKontakt | #",
+    ):
+        super().__init__(master)
+        self.title(title)
+        self.geometry("480x420")
+        self.result_brand = None
+        self.result_bg = None
+        self.result_links = None
+
+        ctk.CTkLabel(self, text="Website-/Shop-Name (Brand):").pack(pady=(15, 2))
+        self.brand_entry = ctk.CTkEntry(self, width=400)
+        self.brand_entry.insert(0, default_brand)
+        self.brand_entry.pack(pady=3)
+
+        ctk.CTkLabel(self, text="Hintergrundfarbe:").pack(pady=(5, 2))
+        self.bg_var = ctk.StringVar(value=default_bg)
+        bgs = ["dark", "primary", "light"]
+        self.bg_menu = ctk.CTkOptionMenu(
+            self, values=bgs, variable=self.bg_var, width=180
+        )
+        self.bg_menu.pack(pady=3)
+
+        ctk.CTkLabel(
+            self,
+            text="Links (Format: Text | Ziel-URL - Ein Eintrag pro Zeile):",
+            font=ctk.CTkFont(weight="bold"),
+        ).pack(pady=(10, 2))
+
+        self.textbox = ctk.CTkTextbox(self, width=400, height=120)
+        self.textbox.insert("1.0", default_links_text)
+        self.textbox.pack(pady=3)
+
+        btn_frame = ctk.CTkFrame(self, fg_color="transparent")
+        btn_frame.pack(pady=15)
+        ctk.CTkButton(btn_frame, text="Speichern", command=self.save).pack(
+            side="left", padx=10
+        )
+        ctk.CTkButton(
+            btn_frame,
+            text="Abbrechen",
+            command=self.cancel,
+            fg_color="red",
+            hover_color="darkred",
+        ).pack(side="left", padx=10)
+
+        self.transient(master)
+        self.grab_set()
+        self.wait_window(self)
+
+    def save(self):
+        self.result_brand = self.brand_entry.get().strip()
+        self.result_bg = self.bg_var.get()
+        raw = self.textbox.get("1.0", "end-1c").strip().split("\n")
+        links = []
+        for line in raw:
+            if "|" in line:
+                parts = line.split("|", 1)
+                links.append({"text": parts[0].strip(), "url": parts[1].strip()})
+            elif line.strip():
+                links.append({"text": line.strip(), "url": "#"})
+        self.result_links = links
+        self.destroy()
+
+    def cancel(self):
         self.destroy()
 
 
@@ -1262,6 +1404,28 @@ class HelpDialog(ctk.CTkToplevel):
                     "Ermöglicht das Auf- und Zuklappen von Inhalten per Klick – ideal für FAQ-Bereiche.\n\n"
                     "Listen (ListGroup):\n"
                     "Saubere Aufzählungen für Produkteigenschaften, Vorteile oder Lieferumfang."
+                ),
+            },
+            {
+                "category": "🧩 Bausteine im Detail",
+                "title": "Formulare & Navigationsleisten",
+                "keywords": [
+                    "formular",
+                    "input",
+                    "eingabe",
+                    "textarea",
+                    "email",
+                    "passwort",
+                    "navbar",
+                    "navigation",
+                    "menü",
+                    "header",
+                ],
+                "content": (
+                    "• Formularfelder (FormInputBlock):\n"
+                    "  Ermöglicht das Hinzufügen von Eingabefeldern (z. B. E-Mail, Text, Passwort, Textarea) inklusive Label und Hilfetexten.\n\n"
+                    "• Navigationsleiste (NavbarBlock):\n"
+                    "  Erstellt eine responsive Bootstrap-Headerleiste mit Shop-/Website-Namen (Brand) und frei definierbaren Navigationslinks."
                 ),
             },
             {
@@ -2073,6 +2237,31 @@ class MainApplication(ctk.CTk):
             col.add_element(AccordionBlock(items=dialog.result_items))
             self.update_ui()
 
+    def add_form_input_to_col(self, col: Column):
+        dialog = FormInputDialog(self, title="Formularfeld hinzufügen")
+        if dialog.result_label:
+            col.add_element(
+                FormInputBlock(
+                    label=dialog.result_label,
+                    input_type=dialog.result_type,
+                    placeholder=dialog.result_placeholder,
+                    help_text=dialog.result_help,
+                )
+            )
+            self.update_ui()
+
+    def add_navbar_to_col(self, col: Column):
+        dialog = NavbarDialog(self, title="Navigationsleiste hinzufügen")
+        if dialog.result_brand:
+            col.add_element(
+                NavbarBlock(
+                    brand=dialog.result_brand,
+                    bg_style=dialog.result_bg,
+                    links=dialog.result_links,
+                )
+            )
+            self.update_ui()
+
     def show_add_element_menu(self, col: Column, widget):
         menu = tk.Menu(self, tearoff=0)
         menu.add_command(label="📝 Text", command=lambda: self.add_text_to_col(col))
@@ -2098,6 +2287,15 @@ class MainApplication(ctk.CTk):
         )
         menu.add_command(
             label="🗂️ Akkordeon", command=lambda: self.add_accordion_to_col(col)
+        )
+        menu.add_separator()
+        menu.add_command(
+            label="📝 Formularfeld (Input)",
+            command=lambda: self.add_form_input_to_col(col),
+        )
+        menu.add_command(
+            label="🧭 Navigationsleiste (Navbar)",
+            command=lambda: self.add_navbar_to_col(col),
         )
         menu.add_separator()
         menu.add_command(
@@ -2160,7 +2358,9 @@ class MainApplication(ctk.CTk):
                 element.code = dialog.result_code
                 self.update_ui()
         elif isinstance(element, TableBlock):
-            rows_str = "\n".join([", ".join(r) for r in element.rows])
+            rows_str = "\n".join(
+                [HTMLConverter.format_table_line(r) for r in element.rows]
+            )
             dialog = TableDialog(
                 self,
                 title="Tabelle bearbeiten",
@@ -2209,6 +2409,40 @@ class MainApplication(ctk.CTk):
             )
             if dialog.result_items is not None:
                 element.items = dialog.result_items
+                self.update_ui()
+        elif isinstance(element, FormInputBlock):
+            dialog = FormInputDialog(
+                self,
+                title="Formularfeld bearbeiten",
+                default_label=element.label,
+                default_type=element.input_type,
+                default_placeholder=element.placeholder,
+                default_help=element.help_text,
+            )
+            if dialog.result_label is not None:
+                element.label = dialog.result_label
+                element.input_type = dialog.result_type
+                element.placeholder = dialog.result_placeholder
+                element.help_text = dialog.result_help
+                self.update_ui()
+        elif isinstance(element, NavbarBlock):
+            links_str = "\n".join(
+                [
+                    f"{link.get('text', '')} | {link.get('url', '#')}"
+                    for link in element.links
+                ]
+            )
+            dialog = NavbarDialog(
+                self,
+                title="Navigationsleiste bearbeiten",
+                default_brand=element.brand,
+                default_bg=element.bg_style,
+                default_links_text=links_str,
+            )
+            if dialog.result_brand is not None:
+                element.brand = dialog.result_brand
+                element.bg_style = dialog.result_bg
+                element.links = dialog.result_links
                 self.update_ui()
 
     def edit_element_spacing(self, element: Element):

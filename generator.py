@@ -1,3 +1,5 @@
+import csv
+import io
 import re
 
 from models import Page
@@ -27,14 +29,19 @@ class HTMLGenerator:
             css_link = HTMLGenerator.BOOTSTRAP5_CSS
             js_script = HTMLGenerator.BOOTSTRAP5_JS
 
+        import html as py_html
+
+        title_escaped = py_html.escape(page.title)
+
         html_template = f"""<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{page.title}</title>
+    <title>{title_escaped}</title>
     {css_link}
     <style>
+
         /* Zusätzliche Styles für besseres visuelles Feedback im Editor (optional) */
         body {{
             background-color: #f8f9fa;
@@ -203,5 +210,45 @@ class HTMLConverter:
             if td_matches:
                 row_cells = [re.sub(r"<[^>]+>", "", td).strip() for td in td_matches]
                 rows.append(row_cells)
-
         return headers, rows
+
+    @staticmethod
+    def format_table_line(items: list[str], delimiter: str = "; ") -> str:
+        """Konvertiert eine Liste von Zellwerten in einen lesbaren String mit Semicolon-Trennzeichen."""
+        return delimiter.join(items)
+
+    @staticmethod
+    def parse_table_line(line: str) -> list[str]:
+        """
+        Parst eine Tabellenzeile.
+        Verwendet bevorzugt ';', '|' oder Tab, falls vorhanden.
+        Fällt sonst auf CSV-Parsing (Komma mit Quoting) zurück.
+        """
+        raw = line.strip()
+        if not raw:
+            return []
+        if ";" in raw:
+            return [cell.strip() for cell in raw.split(";")]
+        if "|" in raw:
+            return [cell.strip() for cell in raw.split("|")]
+        if "\t" in raw:
+            return [cell.strip() for cell in raw.split("\t")]
+        return HTMLConverter.parse_csv_line(raw)
+
+    @staticmethod
+    def format_csv_line(items: list[str]) -> str:
+        """Konvertiert eine Liste von Zellwerten in eine CSV-Zeile mit korrektem Quoting für Kommas."""
+        output = io.StringIO()
+        writer = csv.writer(output, lineterminator="", quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(items)
+        return output.getvalue()
+
+    @staticmethod
+    def parse_csv_line(line: str) -> list[str]:
+        """Parst eine CSV-Zeile zu Zellwerten unter Berücksichtigung von Anführungszeichen."""
+        if not line.strip():
+            return []
+        reader = csv.reader([line], skipinitialspace=True)
+        for row in reader:
+            return [cell.strip() for cell in row]
+        return []
