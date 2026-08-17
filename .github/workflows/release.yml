@@ -72,5 +72,4 @@ jobs:
         with:
           files: |
             dist/*.zip
-            dist/BootstrapEditor/BootstrapEditor.exe
           generate_release_notes: true
