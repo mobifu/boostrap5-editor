@@ -15,8 +15,10 @@ __pycache__/
 settings.json
 *.bak
 *.local
+sichern.py
+start_venv.bat
 
-# Build and Dist output
+# Build, Dist & Specs
 build/
 dist/
 build_staging/
@@ -24,6 +26,10 @@ build_staging/
 
 # Test & Lint Cache
 .pytest_cache/
+.pytest_cache_local/
 .coverage
 .ruff_cache/
 .preview.html
+
+# Local Assets / Internal Images
+Bilder/
