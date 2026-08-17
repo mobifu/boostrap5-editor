@@ -119,9 +119,7 @@ def main():
 
     # 2. Pytest Unit-Tests
     print("> Starte Pytest Unit-Tests...")
-    test_res = subprocess.run(
-        [sys.executable, "-m", "pytest", "test_generator.py"], shell=False
-    )
+    test_res = subprocess.run([sys.executable, "-m", "pytest"], shell=False)
     if test_res.returncode != 0:
         print("[FEHLER] Unit-Tests fehlgeschlagen! Build wird abgebrochen.")
         sys.exit(1)

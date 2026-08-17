@@ -2,6 +2,13 @@
 
 Ein Desktop-Editor auf Python- & CustomTkinter-Basis zur einfachen Erstellung von Bootstrap-HTML-Inhalten für Onlineshops und Webseiten.
 
+## Sicherheitsarchitektur & Features
+
+- **Projektverschlüsselung**: Projekte (`.enc`) werden mit **AES-256-GCM** verschlüsselt. Die Schlüsselableitung erfolgt über PBKDF2HMAC (SHA-256, 600.000 Iterationen) und kryptografisch sichere Salzes/Nonces via `secrets`. Vollständige Abwärtskompatibilität zu bestehenden Fernet-Dateien ist integriert.
+- **XSS & Injection-Schutz**: URL-Sanitizer neutralisiert schadhafte URI-Schemata (`javascript:`, `vbscript:`, `data:text/html`) in Buttons, Bildern und Navigationsleisten. CSS-Klassen und HTML-Attribute werden gefiltert.
+- **Sichere Pfadverwaltung**: Alle internen Dateizugriffe und Vorschau-Generierungen nutzen deterministische `pathlib.Path`-Pfade.
+- **Supply-Chain-Sicherheit**: Trennung in `requirements.txt` (Produktion) und `requirements-dev.txt` (Build & Tests) mit fest definierten Versionsgrenzen.
+
 ## Build & Release Process
 
 Der Build-Prozess wird über `build_exe.py` gesteuert und beinhaltet automatisierte Qualitäts- und Sicherheitsprüfungen (Ruff, Pytest, Bandit).

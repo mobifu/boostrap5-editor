@@ -1,4 +1,5 @@
 import html
+from urllib.parse import urlparse
 import uuid
 from typing import Any
 
@@ -139,6 +140,37 @@ def _sanitize_css_class(name: str, fallback: str = "primary") -> str:
     return clean if clean else fallback
 
 
+def _sanitize_url(url: str, fallback: str = "#", allow_image_data: bool = False) -> str:
+    """
+    Entfernt gefährliche URL-Schemata (wie javascript:, vbscript:, data:text/html)
+    und erlaubt sichere Web-Links, relative Pfade, Anker sowie Mailto/Tel.
+    """
+    if not url or not isinstance(url, str):
+        return fallback
+    clean = url.strip()
+    if not clean:
+        return fallback
+
+    # Sichere relative Links, Anker und Standard-Protokolle
+    if clean.startswith(("#", "/", "./", "../", "mailto:", "tel:")):
+        return html.escape(clean, quote=True)
+
+    if allow_image_data and clean.startswith("data:image/"):
+        return html.escape(clean, quote=True)
+
+    try:
+        parsed = urlparse(clean)
+        # Relative Dateipfade ohne Schema (z. B. "bild.png" oder "assets/logo.jpg")
+        if not parsed.scheme:
+            return html.escape(clean, quote=True)
+        if parsed.scheme.lower() in ("http", "https"):
+            return html.escape(clean, quote=True)
+    except Exception:
+        pass
+
+    return fallback
+
+
 class ImageBlock(Element):
     """Repräsentiert ein Bild (img)."""
 
@@ -149,9 +181,13 @@ class ImageBlock(Element):
 
     def render(self, version: str = "5") -> str:
         img_class = "img-responsive" if version == "3" else "img-fluid"
-        escaped_url = html.escape(self.url, quote=True)
+        safe_url = _sanitize_url(
+            self.url,
+            fallback="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+            allow_image_data=True,
+        )
         escaped_alt = html.escape(self.alt, quote=True)
-        return f'<img src="{escaped_url}" alt="{escaped_alt}" class="{img_class}">'
+        return f'<img src="{safe_url}" alt="{escaped_alt}" class="{img_class}">'
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -182,9 +218,9 @@ class ButtonBlock(Element):
 
     def render(self, version: str = "5") -> str:
         escaped_text = html.escape(self.text)
-        escaped_url = html.escape(self.url, quote=True)
+        safe_url = _sanitize_url(self.url, fallback="#")
         safe_style = _sanitize_css_class(self.style, "primary")
-        return f'<a href="{escaped_url}" class="btn btn-{safe_style}" role="button">{escaped_text}</a>'
+        return f'<a href="{safe_url}" class="btn btn-{safe_style}" role="button">{escaped_text}</a>'
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -645,12 +681,14 @@ class NavbarBlock(Element):
         links_html_list = []
         for link in self.links:
             text = html.escape(link.get("text", "Link"))
-            url = html.escape(link.get("url", "#"), quote=True)
+            safe_url = _sanitize_url(link.get("url", "#"), fallback="#")
             if version == "3":
-                links_html_list.append(f'        <li><a href="{url}">{text}</a></li>')
+                links_html_list.append(
+                    f'        <li><a href="{safe_url}">{text}</a></li>'
+                )
             else:
                 links_html_list.append(
-                    f'      <li class="nav-item"><a class="nav-link" href="{url}">{text}</a></li>'
+                    f'      <li class="nav-item"><a class="nav-link" href="{safe_url}">{text}</a></li>'
                 )
         links_html = "\n".join(links_html_list)
 

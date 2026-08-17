@@ -30,11 +30,16 @@ from models import (
 )
 
 
+from pathlib import Path
+
+BASE_APP_DIR = Path(__file__).resolve().parent
+
+
 def get_resource_path(relative_path):
     """Gibt den absoluten Pfad zur Ressource zurück (funktioniert auch im PyInstaller Bundle)."""
     if hasattr(sys, "_MEIPASS"):
         return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.abspath(relative_path)
+    return str((BASE_APP_DIR / relative_path).resolve())
 
 
 def apply_window_icon(window):
@@ -1834,10 +1839,10 @@ class MainApplication(ctk.CTk):
         apply_window_icon(self)
 
         self.page = Page("Mein Neues Projekt")
-        self.preview_filepath = os.path.abspath(".preview.html")
+        self.preview_filepath = str((BASE_APP_DIR / ".preview.html").resolve())
 
         # Einstellungen laden
-        self.settings_file = "settings.json"
+        self.settings_file = str((BASE_APP_DIR / "settings.json").resolve())
         self.settings = self.load_settings()
 
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -2743,20 +2748,21 @@ class MainApplication(ctk.CTk):
                 f.write(html_code)
 
             # Versuche explizit einen echten Webbrowser zu finden, um IDEs wie DreamWeaver zu umgehen
+            preview_uri = Path(self.preview_filepath).resolve().as_uri()
             browser_opened = False
             if sys.platform == "win32":
                 for b_name in ["chrome", "msedge", "edge", "firefox"]:
                     try:
                         browser = webbrowser.get(b_name)
                         # webbrowser.get() prüft nicht immer, ob er existiert, daher fangen wir Fehler ab
-                        browser.open(f"file://{self.preview_filepath}")
+                        browser.open(preview_uri)
                         browser_opened = True
                         break
                     except webbrowser.Error:
                         continue
 
             if not browser_opened:
-                webbrowser.open(f"file://{self.preview_filepath}")
+                webbrowser.open(preview_uri)
 
         except Exception as e:
             messagebox.showerror(

@@ -16,6 +16,8 @@ from models import (
     Row,
     TableBlock,
     TextBlock,
+    _sanitize_css_class,
+    _sanitize_url,
 )
 
 
@@ -238,3 +240,49 @@ def test_column_row_page_hierarchy_and_reordering():
 def test_unknown_element_type():
     with pytest.raises(ValueError, match="Unbekannter Element-Typ: InvalidType"):
         Element.from_dict({"type": "InvalidType"})
+
+
+def test_url_sanitization_xss_prevention():
+    dangerous_urls = [
+        "javascript:alert(1)",
+        "JAVASCRIPT:console.log('xss')",
+        "vbscript:msgbox(1)",
+        "data:text/html,<script>alert(1)</script>",
+    ]
+    for url in dangerous_urls:
+        btn = ButtonBlock(text="Klick mich", url=url)
+        rendered = btn.render()
+        assert 'href="javascript:' not in rendered.lower()
+        assert 'href="data:' not in rendered.lower()
+        assert 'href="#"' in rendered
+
+        nav = NavbarBlock(brand="Nav", links=[{"text": "Evil", "url": url}])
+        nav_rendered = nav.render()
+        assert 'href="javascript:' not in nav_rendered.lower()
+        assert 'href="#"' in nav_rendered
+
+
+def test_url_sanitization_valid_urls():
+    valid_urls = [
+        "https://example.com/test?a=1&b=2",
+        "http://localhost:8080",
+        "#section1",
+        "/about-us",
+        "./relative/path.html",
+        "mailto:info@example.com",
+        "tel:+4912345678",
+    ]
+    for url in valid_urls:
+        btn = ButtonBlock(text="Klick", url=url)
+        rendered = btn.render()
+        assert "href=" in rendered
+        assert _sanitize_url(url, fallback="#") in rendered
+
+
+def test_css_class_attribute_injection():
+    malicious_style = 'primary" onclick="alert(1)" style="color:red'
+    sanitized = _sanitize_css_class(malicious_style, fallback="primary")
+    assert '"' not in sanitized
+    assert " " not in sanitized
+    assert "=" not in sanitized
+    assert ";" not in sanitized
