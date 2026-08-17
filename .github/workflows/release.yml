@@ -1,0 +1,76 @@
+name: Build, Sign & Release Windows Executable
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run Tests & Security Checks
+        run: |
+          python -m ruff check --select=E,F,W --ignore=E501,W293 .
+          python -m pytest
+          python -m bandit -r . -x ./.venv -ll
+
+      - name: Build Executable
+        run: |
+          python build_exe.py
+
+      - name: Code Signing (Optional via GitHub Secrets)
+        shell: pwsh
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        run: |
+          if (-not [string]::IsNullOrEmpty($env:CERTIFICATE_BASE64)) {
+            Write-Host "Zertifikat gefunden, starte Signierung..."
+            $certBytes = [Convert]::FromBase64String($env:CERTIFICATE_BASE64)
+            $certPath = "$env:TEMP\cert.pfx"
+            [IO.File]::WriteAllBytes($certPath, $certBytes)
+
+            $signtool = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1).FullName
+            if ($signtool) {
+              & $signtool sign /f $certPath /p $env:CERT_PASSWORD /tr http://timestamp.digicert.com /td sha256 /fd sha256 dist\BootstrapEditor\BootstrapEditor.exe
+              Remove-Item $certPath -Force
+              Write-Host "BootstrapEditor.exe erfolgreich signiert!"
+              # ZIP nach der Signierung neu packen
+              Get-ChildItem dist\*.zip | Remove-Item -Force
+              Compress-Archive -Path dist\BootstrapEditor\* -DestinationPath "dist\BootstrapEditor_${{ github.ref_name }}.zip" -Force
+            } else {
+              Write-Warning "signtool.exe nicht gefunden."
+            }
+          } else {
+            Write-Host "Kein Signatur-Zertifikat hinterlegt - ueberspringe Signierung."
+          }
+
+      - name: Create GitHub Release & Upload Assets
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            dist/*.zip
+            dist/BootstrapEditor/BootstrapEditor.exe
+          generate_release_notes: true

@@ -9,17 +9,25 @@ Ein Desktop-Editor auf Python- & CustomTkinter-Basis zur einfachen Erstellung vo
 - **Sichere Pfadverwaltung**: Alle internen Dateizugriffe und Vorschau-Generierungen nutzen deterministische `pathlib.Path`-Pfade.
 - **Supply-Chain-Sicherheit**: Trennung in `requirements.txt` (Produktion) und `requirements-dev.txt` (Build & Tests) mit fest definierten Versionsgrenzen.
 
-## Build & Release Process
+## Build & CI/CD Automation
 
-Der Build-Prozess wird über `build_exe.py` gesteuert und beinhaltet automatisierte Qualitäts- und Sicherheitsprüfungen (Ruff, Pytest, Bandit).
+Der Build-Prozess wird über `build_exe.py` sowie über **GitHub Actions** gesteuert und beinhaltet automatisierte Qualitäts- und Sicherheitsprüfungen (Ruff, Pytest, Bandit):
 
 ```powershell
-# Standard-Build (PyInstaller mit _internal Ordnerstruktur & schnellem Start)
+# Lokaler Standard-Build (PyInstaller mit _internal Ordnerstruktur & schnellem Start)
 python build_exe.py
 
 # Nuitka-Build (Optional für C-Code Kompilierung)
 python build_exe.py --nuitka
 ```
+
+### Automatische Releases & Code-Signing (CI/CD)
+
+Sobald ein Git-Tag (z. B. `v1.0.0`) gepusht wird, baut die GitHub Action `.github/workflows/release.yml` automatisch das Release:
+- Führt alle Unit-Tests und Security-Audits aus.
+- Kompiliert die Windows-Executable (`BootstrapEditor.exe`).
+- Signiert die Binärdatei (sofern `WINDOWS_CERT_BASE64` in den Repository Secrets hinterlegt ist).
+- Publiziert das fertige ZIP-Archiv und die Executable direkt in den **GitHub Releases**.
 
 ---
 
