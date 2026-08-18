@@ -33,3 +33,7 @@ build_staging/
 
 # Local Assets / Internal Images
 Bilder/
+
+# Agent Configs & Ignores
+.agents/
+.agignore
