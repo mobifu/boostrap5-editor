@@ -2,6 +2,10 @@
 
 Ein Desktop-Editor auf Python- & CustomTkinter-Basis zur einfachen Erstellung von Bootstrap-HTML-Inhalten für Onlineshops und Webseiten.
 
+<p align="center">
+  <img src="docs/images/info_boostrap_editor.png" alt="Bootstrap Editor Vorschau" width="800">
+</p>
+
 ## Sicherheitsarchitektur & Features
 
 - **Projektverschlüsselung**: Projekte (`.enc`) werden mit **AES-256-GCM** verschlüsselt. Die Schlüsselableitung erfolgt über PBKDF2HMAC (SHA-256, 600.000 Iterationen) und kryptografisch sichere Salzes/Nonces via `secrets`. Vollständige Abwärtskompatibilität zu bestehenden Fernet-Dateien ist integriert.
