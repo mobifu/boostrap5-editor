@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   build:
@@ -65,6 +67,11 @@ jobs:
           } else {
             Write-Host "Kein Signatur-Zertifikat hinterlegt - ueberspringe Signierung."
           }
+
+      - name: Generate Artifact Attestation (Sigstore Open Source Provenance)
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: 'dist/*.zip'
 
       - name: Create GitHub Release & Upload Assets
         uses: softprops/action-gh-release@v2

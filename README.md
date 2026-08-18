@@ -26,7 +26,8 @@ python build_exe.py --nuitka
 Sobald ein Git-Tag (z. B. `v1.0.0`) gepusht wird, baut die GitHub Action `.github/workflows/release.yml` automatisch das Release:
 - Führt alle Unit-Tests und Security-Audits aus.
 - Kompiliert die Windows-Executable (`BootstrapEditor.exe`).
-- Signiert die Binärdatei (sofern `WINDOWS_CERT_BASE64` in den Repository Secrets hinterlegt ist).
+- Erstellt automatisch kryptografische **GitHub Artifact Attestations** (Sigstore / Open Source Provenance Signatur).
+- Signiert die Binärdatei mit Authenticode (sofern `WINDOWS_CERT_BASE64` in den Repository Secrets hinterlegt ist).
 - Publiziert das fertige ZIP-Archiv und die Executable direkt in den **GitHub Releases**.
 
 ---
