@@ -36,3 +36,9 @@ Sobald ein Git-Tag (z. B. `v1.0.0`) gepusht wird, baut die GitHub Action `.githu
 
 - [ ] **Windows-Installer (.exe / Setup-Wizard)**:
   - Umwandlung der Anwendung in eine echte, installierbare Windows-Setup-Datei (z. B. via Inno Setup oder NSIS), um die Abhängigkeit von einzelnen Zip/Portable-Verzeichnissen zu lösen und eine saubere Windows-Installation (Startmenü-Eintrag, Deinstallationsroutine) anzubieten.
+
+---
+
+## Lizenz
+
+Dieses Projekt ist unter der **GNU General Public License v3.0 (GPLv3)** lizenziert – siehe die Datei [LICENSE](LICENSE) für Details.
