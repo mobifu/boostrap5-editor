@@ -1,39 +1,39 @@
-# Virtual Environments
+# Virtual Environments & Python
 .venv/
 venv/
-venv_win/
 env/
+ENV/
+env.bak/
+venv.bak/
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
 
 # Secrets, Credentials & Local Config
 .env
 .env.*
 *.enc
-settings.json
 *.bak
 *.local
-sichern.py
-start_venv.bat
+settings.json
 
-# Build, Dist & Specs
+# Build, Packaging & Specs
 build/
 dist/
 build_staging/
 *.spec
+*.egg-info/
+.eggs/
 
-# Test & Lint Cache
+# Testing & Coverage
 .pytest_cache/
-.pytest_cache_local/
 .coverage
+htmlcov/
+.tox/
+.nox/
+
+# Linting & Editor Caches
 .ruff_cache/
+.mypy_cache/
+.cache/
 .preview.html
-
-# Local Assets / Internal Images
-Bilder/
-
-# Agent Configs & Ignores
-.agents/
-.agignore
